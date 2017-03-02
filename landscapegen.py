@@ -28,7 +28,7 @@ scratchDB = os.path.join(staticpath,"scratch")                        # scratch 
 asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
 attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
 attrexp_completemap =  os.path.join(staticpath, "Landscape","outputs", "testAttr_Completemap_NTrondelag.csv")      # export attribute table (for ALMaSS)
-
+reclasstable = os.path.join(staticpath, "Landscape","outputs", "testAttr_Completemap_NTrondelag.csv")
 # Model settings
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = gisDB
@@ -354,22 +354,23 @@ try:
   # Write an attribute tabel - based on this answer:
   # https://geonet.esri.com/thread/83294
   # List the fields
+  arcpy.DeleteField_management(table, 'Count')  # We don't need the count column
   fields = arcpy.ListFields(table)
-  field_names.remove('Count')  # We don't need the count column  
-  field_names = [field.name for field in fields]  
-  
+  field_names = ['Value', 'OBJECTID']
   with open(attrexp_completemap,'wb') as f:  
-    w = csv.writer(f, delimiter=':')  
-    # Write the headers
-    w.writerow(field_names)  
     # The search cursor iterates through the 
     for row in arcpy.SearchCursor(table):  
-      field_vals = [row.getValue(field.name) for field in fields]  
-      w.writerow(field_vals)  
+      Value_vals = row.getValue("Value")
+      OBJECTID_vals = row.getValue("OBJECTID")
+      f.write(str(Value_vals) + " : " + str(OBJECTID_vals) + "\n")  
       del row
   nowTime = time.strftime('%X %x') 
   print "Attribute table for CompleteMap exported..." + nowTime 
 
+  CompleteMapReclassified = ReclassByASCIIFile(outPath + 'CompleteMap', reclasstable, "DATA")
+  CompleteMapReclassified.save(outPath + "MapReclassified")
+  nowTime = time.strftime('%X %x')
+  print "Reclassification done ..." + nowTime
 
 # Regionalise map
   if Regionalize_c == 1:
