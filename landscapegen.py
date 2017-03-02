@@ -22,11 +22,12 @@ print "... system modules checked"
 # with the desired resolution.
 staticpath = "o:/ST_LandskabsGenerering/Norway/NTrondelag/"
 outPath = os.path.join(staticpath, "Landscape", "NTrondelag.gdb/")                  # Maps are stored here
-localSettings = os.path.join(staticpath, "Landscape", "project.gdb/NTrondelagOutlineRaster")  # project folder with mask
+localSettings = os.path.join(staticpath, "Landscape", "projectTest.gdb/OutlineRaster")  # project folder with mask
 gisDB = os.path.join(staticpath, "RawData","NTrondelaggis.gdb")                      # input features
 scratchDB = os.path.join(staticpath,"scratch")                        # scratch folder for tempfiles
-asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
-attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelag.csv")      # export attribute table (for ALMaSS)
+asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
+attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
+attrexp_completemap =  os.path.join(staticpath, "Landscape","outputs", "testAttr_Completemap_NTrondelag.csv")      # export attribute table (for ALMaSS)
 
 # Model settings
 arcpy.env.overwriteOutput = True
@@ -48,9 +49,9 @@ Buildings_c = default
 Pylons_c = default
 Paths_c = default
 Railway_c = default
-CompleteMap_c = 1  # Requires all the above layers
-Regionalize_c = 1  # Requires the CompleteMap
-ConvertAscii_c = 1  # Requires the RegionalizedMap
+CompleteMap_c = default  # Requires all the above layers
+Regionalize_c = default  # Requires the CompleteMap
+ConvertAscii_c = default  # Requires the RegionalizedMap
 print " "
 
 #####################################################################################################
@@ -346,6 +347,29 @@ try:
     step4 = Con(Railways == 1, step3, Railways)
     print 'stacking done - saving map'
     step4.save(outPath + 'CompleteMap')
+
+ # Export attribute table 
+  arcpy.BuildRasterAttributeTable_management(outPath + "CompleteMap", "Overwrite")
+  table = outPath + "CompleteMap"
+  # Write an attribute tabel - based on this answer:
+  # https://geonet.esri.com/thread/83294
+  # List the fields
+  fields = arcpy.ListFields(table)
+  field_names.remove('Count')  # We don't need the count column  
+  field_names = [field.name for field in fields]  
+  
+  with open(attrexp_completemap,'wb') as f:  
+    w = csv.writer(f, delimiter=':')  
+    # Write the headers
+    w.writerow(field_names)  
+    # The search cursor iterates through the 
+    for row in arcpy.SearchCursor(table):  
+      field_vals = [row.getValue(field.name) for field in fields]  
+      w.writerow(field_vals)  
+      del row
+  nowTime = time.strftime('%X %x') 
+  print "Attribute table for CompleteMap exported..." + nowTime 
+
 
 # Regionalise map
   if Regionalize_c == 1:
