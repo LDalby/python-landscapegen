@@ -49,7 +49,7 @@ Pylons_c = default
 Paths_c = default
 Railway_c = default
 CompleteMap_c = default  # Requires all the above layers
-Reclassification_c = 1  # This step is needed for Regionalize_c Requires the CompleteMap 
+Reclassification_c = default  # This step is needed for Regionalize_c Requires the CompleteMap 
 Regionalize_c = 1  # Requires the CompleteMap
 ConvertAscii_c = default  # Requires the RegionalizedMap
 print " "
@@ -383,8 +383,8 @@ try:
     fields = arcpy.ListFields(table)  
     field_names = [field.name for field in fields]  
     with open(attrexp,'wb') as f:  
-      # Write the headers
-      f.write(field_names)   
+      # Write the headers (we start the index for field_names at 1 to avoid OBJECTID which we dont need
+      f.write(str(field_names[1]) + "," + str(field_names[2]) + "," + str(field_names[3]) + "\n")   
       # The search cursor iterates through the 
       for row in arcpy.SearchCursor(table):  
         Value_vals = row.getValue("Value")
