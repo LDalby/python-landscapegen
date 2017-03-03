@@ -28,6 +28,7 @@ scratchDB = os.path.join(staticpath,"scratch")                        # scratch 
 asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
 attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
 reclasstable = os.path.join(staticpath, "Landscape","outputs", "testReclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
+farmlinktable = os.path.join(staticpath, "Landscape","outputs", "testFarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
 # Model settings
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = gisDB
@@ -194,7 +195,21 @@ try:
 
         # Update the cursor with the updated list
         cursor.updateRow(row)
-
+    # Export farm link table 
+    table = outPath + "combi_final"
+    # List the fields
+    fields = arcpy.ListFields(table)  
+    with open(farmlinktable,'wb') as f:  
+      # Write the headers. We rename to the correct names right away
+      f.write('FarmID' + "," + 'PolyType' + "\n")   
+      # The search cursor iterates through the 
+      for row in arcpy.SearchCursor(table):  
+        farmid_vals = row.getValue("FARMID")
+        polytype_vals = row.getValue("CODE")
+        f.write(str(Value_vals) + "," + str(Count_vals) + "\n")  
+        del row
+    nowTime = time.strftime('%X %x') 
+    print "Farm link table exported..." + nowTime 
 
 # Base map
   if BaseMap == 1:
