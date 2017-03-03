@@ -43,7 +43,7 @@ print "... model settings read"
 default = 0  # 1 -> run process; 0 -> not run process
 
 # Conversion  - features to raster layers
-Preparation = default
+Preparation = 1
 BaseMap = default
 Buildings_c = default
 Pylons_c = default
@@ -51,7 +51,7 @@ Paths_c = default
 Railway_c = default
 CompleteMap_c = default  # Requires all the above layers
 Reclassification_c = default  # This step is needed for Regionalize_c Requires the CompleteMap 
-Regionalize_c = 1  # Requires the CompleteMap
+Regionalize_c = default  # Requires the CompleteMap
 ConvertAscii_c = default  # Requires the RegionalizedMap
 print " "
 
@@ -206,7 +206,7 @@ try:
       for row in arcpy.SearchCursor(table):  
         farmid_vals = row.getValue("FARMID")
         polytype_vals = row.getValue("CODE")
-        f.write(str(Value_vals) + "," + str(Count_vals) + "\n")  
+        f.write(str(farmid_vals) + "," + str(polytype_vals) + "\n")  
         del row
     nowTime = time.strftime('%X %x') 
     print "Farm link table exported..." + nowTime 
