@@ -20,11 +20,9 @@ length(maps)
 PathToMaps = 'o:/ST_LandskabsGenerering/outputs/kvadrater/'  
 # PathToFile = 'o:/ST_LandskabsGenerering/outputs/kvadrater/kolding/'  # The attribute table from NAME_almass. It needs to be exported from ArcGIS.
 # LandscapeName = 'kolding'
-for (i in 1:length(maps)) 
-{
-	LandscapeName = maps[i]
-	FileName = paste(LandscapeName, 'Attr.txt', sep = '')
-	attr = fread(paste(PathToMaps, LandscapeName, '/', FileName, sep = ''))
+
+
+	attr = fread('')
 	cleanattr = CleanAttrTable(AttrTable = attr, Soiltype = TRUE)  # see ?CleanAttrTable for documentation
 # dim(cleanattr)
 	setkey(cleanattr, 'PolyType')
