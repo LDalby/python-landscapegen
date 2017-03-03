@@ -6,7 +6,6 @@ library(data.table)
 
 staticpath = 'o:/ST_LandskabsGenerering/Norway/NTrondelag/Landscape/outputs'
 attr = fread(file.path(staticpath, 'testAttr_NTrondelag.csv'))
-setnames(attr, c('PolyRef', 'Area', 'LINK'))
 setkey(attr, 'LINK')
 recl = fread(file.path(staticpath, 'testReclass_Completemap_NTrondelag.txt'), sep = ':')
 setnames(recl, c('PolyType', 'LINK'))
@@ -24,6 +23,8 @@ full[is.na(FarmID), FarmID:="-1"]
 
 full[PolyType %between% c(2100000, 2299999), PolyType:=20]  # Field
 full[PolyType %between% c(2300000, 2399999), PolyType:=35]  # Permnanent pasture
+setkey(full, PolyRef)
+fwrite(full, file = file.path(staticpath, 'ALMaSSTestTrondelag', 'PolyrefTestNTrondelag.txt'), sep = '\t')
 
 tables()
 

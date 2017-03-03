@@ -40,10 +40,10 @@ print "... model settings read"
 
 # Model execution - controls which processes are executed
 
-default = 0  # 1 -> run process; 0 -> not run process
+default = 1  # 1 -> run process; 0 -> not run process
 
 # Conversion  - features to raster layers
-Preparation = 1
+Preparation = default
 BaseMap = default
 Buildings_c = default
 Pylons_c = default
