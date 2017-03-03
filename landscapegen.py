@@ -27,7 +27,7 @@ gisDB = os.path.join(staticpath, "RawData","NTrondelaggis.gdb")                 
 scratchDB = os.path.join(staticpath,"scratch")                        # scratch folder for tempfiles
 asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
 attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
-reclasstable = os.path.join(staticpath, "Landscape","outputs", "testAttr_Completemap_NTrondelag.txt")  # Table with links before regionalizing
+reclasstable = os.path.join(staticpath, "Landscape","outputs", "testReclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
 # Model settings
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = gisDB
@@ -39,7 +39,7 @@ print "... model settings read"
 
 # Model execution - controls which processes are executed
 
-default = 1  # 1 -> run process; 0 -> not run process
+default = 0  # 1 -> run process; 0 -> not run process
 
 # Conversion  - features to raster layers
 Preparation = default
@@ -49,8 +49,8 @@ Pylons_c = default
 Paths_c = default
 Railway_c = default
 CompleteMap_c = default  # Requires all the above layers
-Reclassification_c = default  # This step is needed for Regionalize_c Requires the CompleteMap 
-Regionalize_c = default  # Requires the CompleteMap
+Reclassification_c = 1  # This step is needed for Regionalize_c Requires the CompleteMap 
+Regionalize_c = 1  # Requires the CompleteMap
 ConvertAscii_c = default  # Requires the RegionalizedMap
 print " "
 
@@ -352,12 +352,8 @@ try:
     # Export attribute table 
     arcpy.BuildRasterAttributeTable_management(outPath + "CompleteMap", "Overwrite")
     table = outPath + "CompleteMap"
-    # Write an attribute tabel - based on this answer:
-    # https://geonet.esri.com/thread/83294
-    # List the fields
     arcpy.DeleteField_management(table, 'Count')  # We don't need the count column
     fields = arcpy.ListFields(table)
-    field_names = ['Value', 'OBJECTID']
     with open(reclasstable,'wb') as f:  
       # The search cursor iterates through the 
       for row in arcpy.SearchCursor(table):  
@@ -383,20 +379,18 @@ try:
 
  # Export attribute table 
     table = outPath + "FinalMap"
-    # Write an attribute tabel - based on this answer:
-    # https://geonet.esri.com/thread/83294
     # List the fields
     fields = arcpy.ListFields(table)  
     field_names = [field.name for field in fields]  
-    
     with open(attrexp,'wb') as f:  
-      w = csv.writer(f)  
       # Write the headers
-      w.writerow(field_names)  
+      f.write(field_names)   
       # The search cursor iterates through the 
       for row in arcpy.SearchCursor(table):  
-        field_vals = [row.getValue(field.name) for field in fields]  
-        w.writerow(field_vals)  
+        Value_vals = row.getValue("Value")
+        Count_vals = row.getValue("Count")
+        LINK_vals = row.getValue("LINK")
+        f.write(str(Value_vals) + "," + str(Count_vals) + "," + str(LINK_vals) + "\n")  
         del row
     nowTime = time.strftime('%X %x') 
     print "Attribute table for FinalMap exported..." + nowTime 
