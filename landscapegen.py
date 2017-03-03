@@ -410,6 +410,8 @@ try:
     nowTime = time.strftime('%X %x') 
     print "Attribute table for FinalMap exported..." + nowTime 
 
+# arcpy.SetRasterProperties_management(FinalMap, "", "", "", "1 2112", "")  # Snippet to set NoData value to 2112
+
 # convert regionalised map to ascii
   if ConvertAscii_c == 1:
     print 'Converting to ASCII...'
