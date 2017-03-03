@@ -27,8 +27,7 @@ gisDB = os.path.join(staticpath, "RawData","NTrondelaggis.gdb")                 
 scratchDB = os.path.join(staticpath,"scratch")                        # scratch folder for tempfiles
 asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
 attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
-attrexp_completemap =  os.path.join(staticpath, "Landscape","outputs", "testAttr_Completemap_NTrondelag.csv")      # export attribute table (for ALMaSS)
-reclasstable = os.path.join(staticpath, "Landscape","outputs", "testAttr_Completemap_NTrondelag.csv")
+reclasstable = os.path.join(staticpath, "Landscape","outputs", "testAttr_Completemap_NTrondelag.txt")  # Table with links before regionalizing
 # Model settings
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = gisDB
@@ -40,7 +39,7 @@ print "... model settings read"
 
 # Model execution - controls which processes are executed
 
-default = 0  # 1 -> run process; 0 -> not run process
+default = 1  # 1 -> run process; 0 -> not run process
 
 # Conversion  - features to raster layers
 Preparation = default
@@ -50,6 +49,7 @@ Pylons_c = default
 Paths_c = default
 Railway_c = default
 CompleteMap_c = default  # Requires all the above layers
+Reclassification_c = default  # This step is needed for Regionalize_c Requires the CompleteMap 
 Regionalize_c = default  # Requires the CompleteMap
 ConvertAscii_c = default  # Requires the RegionalizedMap
 print " "
@@ -348,34 +348,35 @@ try:
     print 'stacking done - saving map'
     step4.save(outPath + 'CompleteMap')
 
- # Export attribute table 
-  arcpy.BuildRasterAttributeTable_management(outPath + "CompleteMap", "Overwrite")
-  table = outPath + "CompleteMap"
-  # Write an attribute tabel - based on this answer:
-  # https://geonet.esri.com/thread/83294
-  # List the fields
-  arcpy.DeleteField_management(table, 'Count')  # We don't need the count column
-  fields = arcpy.ListFields(table)
-  field_names = ['Value', 'OBJECTID']
-  with open(attrexp_completemap,'wb') as f:  
-    # The search cursor iterates through the 
-    for row in arcpy.SearchCursor(table):  
-      Value_vals = row.getValue("Value")
-      OBJECTID_vals = row.getValue("OBJECTID")
-      f.write(str(Value_vals) + " : " + str(OBJECTID_vals) + "\n")  
-      del row
-  nowTime = time.strftime('%X %x') 
-  print "Attribute table for CompleteMap exported..." + nowTime 
+  if Reclassification_c == 1:
+    # Export attribute table 
+    arcpy.BuildRasterAttributeTable_management(outPath + "CompleteMap", "Overwrite")
+    table = outPath + "CompleteMap"
+    # Write an attribute tabel - based on this answer:
+    # https://geonet.esri.com/thread/83294
+    # List the fields
+    arcpy.DeleteField_management(table, 'Count')  # We don't need the count column
+    fields = arcpy.ListFields(table)
+    field_names = ['Value', 'OBJECTID']
+    with open(reclasstable,'wb') as f:  
+      # The search cursor iterates through the 
+      for row in arcpy.SearchCursor(table):  
+        Value_vals = row.getValue("Value")
+        OBJECTID_vals = row.getValue("OBJECTID")
+        f.write(str(Value_vals) + " : " + str(OBJECTID_vals) + "\n")  
+        del row
+    nowTime = time.strftime('%X %x') 
+    print "Reclassification table for CompleteMap exported..." + nowTime 
 
-  CompleteMapReclassified = ReclassByASCIIFile(outPath + 'CompleteMap', reclasstable, "DATA")
-  CompleteMapReclassified.save(outPath + "MapReclassified")
-  nowTime = time.strftime('%X %x')
-  print "Reclassification done ..." + nowTime
+    CompleteMapReclassified = ReclassByASCIIFile(outPath + 'CompleteMap', reclasstable, "DATA")
+    CompleteMapReclassified.save(outPath + "MapReclassified")
+    nowTime = time.strftime('%X %x')
+    print "Reclassification done ..." + nowTime
 
 # Regionalise map
   if Regionalize_c == 1:
     print 'Regionalizing...'
-    RegionalizedMap = RegionGroup(outPath + 'CompleteMap',"EIGHT","WITHIN","ADD_LINK","")
+    RegionalizedMap = RegionGroup(outPath + 'MapReclassified',"EIGHT","WITHIN","ADD_LINK","")
     RegionalizedMap.save(outPath + "FinalMap")
     nowTime = time.strftime('%X %x')
     print "Regionalization done... " + nowTime
@@ -398,7 +399,7 @@ try:
         w.writerow(field_vals)  
         del row
     nowTime = time.strftime('%X %x') 
-    print "Attribute table exported..." + nowTime 
+    print "Attribute table for FinalMap exported..." + nowTime 
 
 # convert regionalised map to ascii
   if ConvertAscii_c == 1:
