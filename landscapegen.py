@@ -383,8 +383,8 @@ try:
     fields = arcpy.ListFields(table)  
     field_names = [field.name for field in fields]  
     with open(attrexp,'wb') as f:  
-      # Write the headers (we start the index for field_names at 1 to avoid OBJECTID which we dont need
-      f.write(str(field_names[1]) + "," + str(field_names[2]) + "," + str(field_names[3]) + "\n")   
+      # Write the headers we rename to the correct names right away
+      f.write('PolyRef' + "," + 'Area' + "," + 'LINK' + "\n")   
       # The search cursor iterates through the 
       for row in arcpy.SearchCursor(table):  
         Value_vals = row.getValue("Value")
