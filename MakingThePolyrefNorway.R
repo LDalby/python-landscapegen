@@ -6,34 +6,85 @@
 # You need to export the attribute table for your landscape
 # first. 
 
-if(!require(ralmass)) 
-{
-	library(devtools)
-	install_github('LDalby/ralmass')
-}
 library(ralmass)
 library(data.table)
 
-maps = dir('o:/ST_LandskabsGenerering/outputs/kvadrater')
-maps = maps[-which(maps %in% c("alleKvadrater.gdb", "data", "FarmClassificationMaps", 'skabelon', 'karup'))]  # Leaving out Karup since it has already been patched by cjt.
-length(maps)
-PathToMaps = 'o:/ST_LandskabsGenerering/outputs/kvadrater/'  
-# PathToFile = 'o:/ST_LandskabsGenerering/outputs/kvadrater/kolding/'  # The attribute table from NAME_almass. It needs to be exported from ArcGIS.
-# LandscapeName = 'kolding'
+staticpath = 'o:/ST_LandskabsGenerering/Norway/NTrondelag/Landscape/outputs'
+attr = fread(file.path(staticpath, 'testAttr_NTrondelag.csv'))
+setnames(attr, c('PolyRef', 'Area', 'LINK'))
+setkey(attr, 'LINK')
+recl = fread(file.path(staticpath, 'testReclass_Completemap_NTrondelag.txt'), sep = ':')
+setnames(recl, c('PolyType', 'LINK'))
+setkey(recl, 'LINK')
+
+tmp = merge(attr, recl)  # Okay fine, now we can get rid of LINK.
+tmp[, LINK:=NULL]
+farmlink = fread(file.path(staticpath, 'testFarmLinkTable_NTrondelag.txt'))
+farmlink = farmlink[PolyType >= 2100000,]
+setkey(farmlink, PolyType)
+setkey(tmp, PolyType)
+
+full = merge(tmp, farmlink, all.x = TRUE)
+tables()
 
 
-	attr = fread('')
-	cleanattr = CleanAttrTable(AttrTable = attr, Soiltype = TRUE)  # see ?CleanAttrTable for documentation
-# dim(cleanattr)
-	setkey(cleanattr, 'PolyType')
-	targetfarms = cleanattr[PolyType >= 10000]  # Get the fields
-	targetfarms[,Soiltype:=NULL]
-	cleanattr = cleanattr[PolyType < 10000]  # Get the rest
-# dim(cleanattr)
-# str(targetfarms)
 
 
-# ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ #
+
+
+
+targetfarms = cleanattr[PolyType >= 10000]  # Get the fields
+targetfarms[,Soiltype:=NULL]
+cleanattr = cleanattr[PolyType < 10000]  # Get the rest
+
+
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	# ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ #
 #	    			The farm info  						   #
 # ¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤¤ #
 # Here we get the merge farminformation back onto the markpolyID:
