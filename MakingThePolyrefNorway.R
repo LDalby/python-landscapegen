@@ -5,15 +5,15 @@
 library(data.table)
 
 staticpath = 'o:/ST_LandskabsGenerering/Norway/NTrondelag/Landscape/outputs'
-attr = fread(file.path(staticpath, 'testAttr_NTrondelag.csv'))
+attr = fread(file.path(staticpath, 'Attr_NTrondelag.csv'))
 setkey(attr, 'LINK')
-recl = fread(file.path(staticpath, 'testReclass_Completemap_NTrondelag.txt'), sep = ':')
+recl = fread(file.path(staticpath, 'Reclass_Completemap_NTrondelag.txt'), sep = ':')
 setnames(recl, c('PolyType', 'LINK'))
 setkey(recl, 'LINK')
 
 tmp = merge(attr, recl)  # Okay fine, now we can get rid of LINK.
 tmp[, LINK:=NULL]
-farmlink = fread(file.path(staticpath, 'testFarmLinkTable_NTrondelag.txt'))
+farmlink = fread(file.path(staticpath, 'FarmLinkTable_NTrondelag.txt'))
 farmlink = farmlink[PolyType >= 2100000,]
 setkey(farmlink, PolyType)
 setkey(tmp, PolyType)
