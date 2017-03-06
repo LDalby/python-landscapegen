@@ -22,13 +22,18 @@ print "... system modules checked"
 # with the desired resolution.
 staticpath = "o:/ST_LandskabsGenerering/Norway/NTrondelag/"
 outPath = os.path.join(staticpath, "Landscape", "NTrondelag.gdb/")                  # Maps are stored here
-localSettings = os.path.join(staticpath, "Landscape", "projectTest.gdb/OutlineRaster")  # project folder with mask
+localSettings = os.path.join(staticpath, "Landscape", "project.gdb/NTrondelagOutlineRaster")  # project folder with mask
+# localSettings = os.path.join(staticpath, "Landscape", "projectTest.gdb/OutlineRaster")  # project folder with mask
 gisDB = os.path.join(staticpath, "RawData","NTrondelaggis.gdb")                      # input features
 scratchDB = os.path.join(staticpath,"scratch")                        # scratch folder for tempfiles
-asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
-attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
-reclasstable = os.path.join(staticpath, "Landscape","outputs", "testReclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
-farmlinktable = os.path.join(staticpath, "Landscape","outputs", "testFarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
+asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
+# asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
+attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelag.csv")      # export attribute table (for ALMaSS)
+# attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
+reclasstable = os.path.join(staticpath, "Landscape","outputs", "Reclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
+# reclasstable = os.path.join(staticpath, "Landscape","outputs", "testReclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
+farmlinktable = os.path.join(staticpath, "Landscape","outputs", "FarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
+# farmlinktable = os.path.join(staticpath, "Landscape","outputs", "testFarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
 # Model settings
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = gisDB
@@ -43,7 +48,7 @@ print "... model settings read"
 default = 1  # 1 -> run process; 0 -> not run process
 
 # Conversion  - features to raster layers
-Preparation = default
+Preparation = 0
 BaseMap = default
 Buildings_c = default
 Pylons_c = default
