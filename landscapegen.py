@@ -21,24 +21,24 @@ print "... system modules checked"
 # All data have prior to running the script been imported into a file geodatabase
 # with the desired resolution.
 staticpath = "o:/ST_LandskabsGenerering/Norway/NTrondelag/"
-# outPath = os.path.join(staticpath, "Landscape", "NTrondelag.gdb/")                  # Maps are stored here
-outPath = os.path.join(staticpath, "Landscape", "NTrondelagSubset.gdb/")                  # Maps are stored here
-# localSettings = os.path.join(staticpath, "Landscape", "project.gdb/NTrondelagOutlineRaster")  # project folder with mask
-localSettings = os.path.join(staticpath, "Landscape", "projectSubset.gdb/SubsetOutlineRaster")  # project folder with mask
+outPath = os.path.join(staticpath, "Landscape", "NTrondelag.gdb/")                  # Maps are stored here
+# outPath = os.path.join(staticpath, "Landscape", "NTrondelagSubset.gdb/")                  # Maps are stored here
+localSettings = os.path.join(staticpath, "Landscape", "project.gdb/NTrondelagOutlineRaster")  # project folder with mask
+# localSettings = os.path.join(staticpath, "Landscape", "projectSubset.gdb/SubsetOutlineRaster")  # project folder with mask
 # localSettings = os.path.join(staticpath, "Landscape", "projectTest.gdb/OutlineRaster")  # project folder with mask
 gisDB = os.path.join(staticpath, "RawData","NTrondelaggis.gdb")                      # input features
 scratchDB = os.path.join(staticpath,"scratch")                        # scratch folder for tempfiles
-asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelagSubset.txt") # export in ascii (for ALMaSS)
-# asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
+# asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelagSubset.txt") # export in ascii (for ALMaSS)
+asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
 # asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
-attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelagSubset.csv")      # export attribute table (for ALMaSS)
-# attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelag.csv")      # export attribute table (for ALMaSS)
+attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelag.csv")      # export attribute table (for ALMaSS)
+# attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelagSubset.csv")      # export attribute table (for ALMaSS)
 # attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
-reclasstable = os.path.join(staticpath, "Landscape","outputs", "Reclass_Completemap_Subset.txt")  # Table with links before regionalizing
-# reclasstable = os.path.join(staticpath, "Landscape","outputs", "Reclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
+# reclasstable = os.path.join(staticpath, "Landscape","outputs", "Reclass_Completemap_Subset.txt")  # Table with links before regionalizing
+reclasstable = os.path.join(staticpath, "Landscape","outputs", "Reclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
 # reclasstable = os.path.join(staticpath, "Landscape","outputs", "testReclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
-farmlinktable = os.path.join(staticpath, "Landscape","outputs", "FarmLinkTable_NTrondelagSubset.txt")  # Table linking farmID and polygons
-# farmlinktable = os.path.join(staticpath, "Landscape","outputs", "FarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
+farmlinktable = os.path.join(staticpath, "Landscape","outputs", "FarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
+# farmlinktable = os.path.join(staticpath, "Landscape","outputs", "FarmLinkTable_NTrondelagSubset.txt")  # Table linking farmID and polygons
 # farmlinktable = os.path.join(staticpath, "Landscape","outputs", "testFarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
 # Model settings
 arcpy.env.overwriteOutput = True
@@ -112,7 +112,8 @@ try:
     # Merge the 'matrikkel'maps into a single feature layer
     print '... merging matrikkel maps'
     matpath = "O:/ST_LandskabsGenerering/Norway/NTrondelag/RawData/Matrikkeldata/MatrikkelEdited.gdb/"
-    arcpy.Merge_management([matpath + 'mat32_1702', matpath + 'mat32_1719', matpath + 'mat32_1721',
+    matpathold = "O:/ST_LandskabsGenerering/Norway/NTrondelag/RawData/Matrikkeldata/MatrikkelEdited_old.gdb/"  # Due to an issue with mat32_1721 (only two polygons...)
+    arcpy.Merge_management([matpath + 'mat32_1702', matpath + 'mat32_1719', matpathold + 'mat32_1721',
     matpath + 'mat32_1724', matpath + 'mat32_1725', matpath + 'mat32_1756'], outPath + 'MAT_merge')
     # Set local variables
     inTable = outPath + "MAT_merge"
