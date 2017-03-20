@@ -54,7 +54,7 @@ print "... model settings read"
 default = 1  # 1 -> run process; 0 -> not run process
 
 # Conversion  - features to raster layers
-Preparation = default
+Preparation = 0
 BaseMap = default
 Buildings_c = default
 Pylons_c = default
