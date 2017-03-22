@@ -61,20 +61,37 @@ levangerattr[MATRIKKELK != 0, FarmNumber:=MATRIKKELK*1000000+GNR*1000+BNR]
 levangerattr[ARTYPE %between% c(21,23),.(NFarmID = length(unique(FARMID)), NFarmNumber = length(unique(FarmNumber)))]
 # Read in the production data and see which ID are in the map, but not in the production data.
 library(readxl)
-farmclassification = read_excel('o:/ST_GooseProject/Norway/NorwayLandscape/FarmClassification/FarmClassification_Norway_20160215.xlsx',
-           sheet = 'Ark1', skip = 1)
+farmclassification = as.data.table(read_excel('o:/ST_GooseProject/Norway/NorwayLandscape/FarmClassification/FarmClassification_Norway_20160215.xlsx',
+           sheet = 'Ark1', skip = 1))
 farmnumbers_cjt = unique(farmclassification$FarmNumber)
 fullattr[!FarmNumber %in% farmnumbers_cjt & ARTYPE %between% c(21,23) & MATRIKKELK == 1719,]
 
-
-
-
-
-
-
-
-
-
-
+setkey(fullattr, 'FarmNumber')
+levanger = fullattr[MATRIKKELK == 1719,]
+levanger[, FarmNumber:=sapply(FARMID, FUN = GetNR)]
+levanger[ARTYPE %between% c(21,23), Area:=sum(Shape_Area), by = FarmNumber]
+levanger = unique(levanger[!is.na(Area), .(AreaDekar = Area/1000), by = FarmNumber])
+setkey(levanger, 'FarmNumber')
+farmclassification = farmclassification[Kommune == 1719,c("FarmNumber", "Total Area dekar")]
+setkey(farmclassification, 'FarmNumber')
+setnames(farmclassification, old = 'Total Area dekar', new = 'AreaDekar')
+farms = merge(levanger, farmclassification, suffixes = c(".Map", ".Production"))
+library(ggplot2)
+ggplot(farms, aes(AreaDekar.Map, AreaDekar.Production)) + 
+  geom_point() +
+  xlab('Area in map') +
+  ylab('Area in production data') +
+  labs(title = 'Comparison of areas', subtitle = 'Levanger municipality. Area in dekar') +
+  theme_bw()
+polyrefarea = full[Farmref != -1,.(FieldArea = sum(Area)/1000), by = Farmref ]
+setnames(polyrefarea, old = 'Farmref', new = 'FarmNumber')
+setkey(polyrefarea, FarmNumber)
+merge(farms, polyrefarea) %>%
+ggplot(aes(AreaDekar.Map, FieldArea)) + 
+  geom_point() +
+  xlab('Area in map') +
+  ylab('Area in polyref file') +
+  labs(title = 'Comparison of areas', subtitle = 'Levanger municipality.\nComparing the area based on the attribute table in the shape files with the area in the polyref file. Area in dekar') +
+  theme_bw()
 
 
