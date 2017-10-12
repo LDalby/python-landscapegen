@@ -22,12 +22,24 @@ print "... system modules checked"
 # with the desired resolution.
 staticpath = "o:/ST_LandskabsGenerering/Norway/NTrondelag/"
 outPath = os.path.join(staticpath, "Landscape", "NTrondelag.gdb/")                  # Maps are stored here
+# outPath = os.path.join(staticpath, "Landscape", "NTrondelagSubset.gdb/")                  # Maps are stored here
 localSettings = os.path.join(staticpath, "Landscape", "project.gdb/NTrondelagOutlineRaster")  # project folder with mask
+# localSettings = os.path.join(staticpath, "Landscape", "projectSubset.gdb/SubsetOutlineRaster")  # project folder with mask
+# localSettings = os.path.join(staticpath, "Landscape", "projectTest.gdb/OutlineRaster")  # project folder with mask
 gisDB = os.path.join(staticpath, "RawData","NTrondelaggis.gdb")                      # input features
 scratchDB = os.path.join(staticpath,"scratch")                        # scratch folder for tempfiles
+# asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelagSubset.txt") # export in ascii (for ALMaSS)
 asciiexp = os.path.join(staticpath, "Landscape","outputs", "ASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
+# asciiexp = os.path.join(staticpath, "Landscape","outputs", "testASCII_NTrondelag.txt") # export in ascii (for ALMaSS)
 attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelag.csv")      # export attribute table (for ALMaSS)
-
+# attrexp =  os.path.join(staticpath, "Landscape","outputs", "Attr_NTrondelagSubset.csv")      # export attribute table (for ALMaSS)
+# attrexp =  os.path.join(staticpath, "Landscape","outputs", "testAttr_NTrondelag.csv")      # export attribute table (for ALMaSS)
+# reclasstable = os.path.join(staticpath, "Landscape","outputs", "Reclass_Completemap_Subset.txt")  # Table with links before regionalizing
+reclasstable = os.path.join(staticpath, "Landscape","outputs", "Reclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
+# reclasstable = os.path.join(staticpath, "Landscape","outputs", "testReclass_Completemap_NTrondelag.txt")  # Table with links before regionalizing
+farmlinktable = os.path.join(staticpath, "Landscape","outputs", "FarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
+# farmlinktable = os.path.join(staticpath, "Landscape","outputs", "FarmLinkTable_NTrondelagSubset.txt")  # Table linking farmID and polygons
+# farmlinktable = os.path.join(staticpath, "Landscape","outputs", "testFarmLinkTable_NTrondelag.txt")  # Table linking farmID and polygons
 # Model settings
 arcpy.env.overwriteOutput = True
 arcpy.env.workspace = gisDB
@@ -39,18 +51,19 @@ print "... model settings read"
 
 # Model execution - controls which processes are executed
 
-default = 0  # 1 -> run process; 0 -> not run process
+default = 1  # 1 -> run process; 0 -> not run process
 
 # Conversion  - features to raster layers
-Preparation = default
+Preparation = 0
 BaseMap = default
 Buildings_c = default
 Pylons_c = default
 Paths_c = default
 Railway_c = default
-CompleteMap_c = 1  # Requires all the above layers
-Regionalize_c = 1  # Requires the CompleteMap
-ConvertAscii_c = 1  # Requires the RegionalizedMap
+CompleteMap_c = default  # Requires all the above layers
+Reclassification_c = default  # This step is needed for Regionalize_c Requires the CompleteMap 
+Regionalize_c = default  # Requires the CompleteMap
+ConvertAscii_c = default  # Requires the RegionalizedMap
 print " "
 
 #####################################################################################################
@@ -99,7 +112,8 @@ try:
     # Merge the 'matrikkel'maps into a single feature layer
     print '... merging matrikkel maps'
     matpath = "O:/ST_LandskabsGenerering/Norway/NTrondelag/RawData/Matrikkeldata/MatrikkelEdited.gdb/"
-    arcpy.Merge_management([matpath + 'mat32_1702', matpath + 'mat32_1719', matpath + 'mat32_1721',
+    matpathold = "O:/ST_LandskabsGenerering/Norway/NTrondelag/RawData/Matrikkeldata/MatrikkelEdited_old.gdb/"  # Due to an issue with mat32_1721 (only two polygons...)
+    arcpy.Merge_management([matpath + 'mat32_1702', matpath + 'mat32_1719', matpathold + 'mat32_1721',
     matpath + 'mat32_1724', matpath + 'mat32_1725', matpath + 'mat32_1756'], outPath + 'MAT_merge')
     # Set local variables
     inTable = outPath + "MAT_merge"
@@ -193,7 +207,21 @@ try:
 
         # Update the cursor with the updated list
         cursor.updateRow(row)
-
+    # Export farm link table 
+    table = outPath + "combi_final"
+    # List the fields
+    fields = arcpy.ListFields(table)  
+    with open(farmlinktable,'wb') as f:  
+      # Write the headers. We rename to the correct names right away
+      f.write('FarmID' + "," + 'PolyType' + "\n")   
+      # The search cursor iterates through the 
+      for row in arcpy.SearchCursor(table):  
+        farmid_vals = row.getValue("FARMID")
+        polytype_vals = row.getValue("CODE")
+        f.write(str(farmid_vals) + "," + str(polytype_vals) + "\n")  
+        del row
+    nowTime = time.strftime('%X %x') 
+    print "Farm link table exported..." + nowTime 
 
 # Base map
   if BaseMap == 1:
@@ -347,36 +375,57 @@ try:
     print 'stacking done - saving map'
     step4.save(outPath + 'CompleteMap')
 
+  if Reclassification_c == 1:
+    # Export attribute table 
+    arcpy.BuildRasterAttributeTable_management(outPath + "CompleteMap", "Overwrite")
+    table = outPath + "CompleteMap"
+    arcpy.DeleteField_management(table, 'Count')  # We don't need the count column
+    fields = arcpy.ListFields(table)
+    with open(reclasstable,'wb') as f:  
+      # The search cursor iterates through the 
+      for row in arcpy.SearchCursor(table):  
+        Value_vals = row.getValue("Value")
+        OBJECTID_vals = row.getValue("OBJECTID")
+        f.write(str(Value_vals) + " : " + str(OBJECTID_vals) + "\n")  
+        del row
+    nowTime = time.strftime('%X %x') 
+    print "Reclassification table for CompleteMap exported..." + nowTime 
+
+    CompleteMapReclassified = ReclassByASCIIFile(outPath + 'CompleteMap', reclasstable, "DATA")
+    CompleteMapReclassified.save(outPath + "MapReclassified")
+    nowTime = time.strftime('%X %x')
+    print "Reclassification done ..." + nowTime
+
 # Regionalise map
   if Regionalize_c == 1:
     print 'Regionalizing...'
-    RegionalizedMap = RegionGroup(outPath + 'CompleteMap',"EIGHT","WITHIN","ADD_LINK","")
+    RegionalizedMap = RegionGroup(outPath + 'MapReclassified',"EIGHT","WITHIN","ADD_LINK","")
     RegionalizedMap.save(outPath + "FinalMap")
     nowTime = time.strftime('%X %x')
     print "Regionalization done... " + nowTime
 
  # Export attribute table 
     table = outPath + "FinalMap"
-    # Write an attribute tabel - based on this answer:
-    # https://geonet.esri.com/thread/83294
     # List the fields
     fields = arcpy.ListFields(table)  
     field_names = [field.name for field in fields]  
-    
     with open(attrexp,'wb') as f:  
-      w = csv.writer(f)  
-      # Write the headers
-      w.writerow(field_names)  
+      # Write the headers we rename to the correct names right away
+      f.write('PolyRef' + "," + 'Area' + "," + 'LINK' + "\n")   
       # The search cursor iterates through the 
       for row in arcpy.SearchCursor(table):  
-        field_vals = [row.getValue(field.name) for field in fields]  
-        w.writerow(field_vals)  
+        Value_vals = row.getValue("Value")
+        Count_vals = row.getValue("Count")
+        LINK_vals = row.getValue("LINK")
+        f.write(str(Value_vals) + "," + str(Count_vals) + "," + str(LINK_vals) + "\n")  
         del row
     nowTime = time.strftime('%X %x') 
-    print "Attribute table exported..." + nowTime 
+    print "Attribute table for FinalMap exported..." + nowTime 
 
 # convert regionalised map to ascii
   if ConvertAscii_c == 1:
+    print 'Setting NoData value...'
+    arcpy.SetRasterProperties_management(outPath + "FinalMap", "", "", "", "1 2112", "")
     print 'Converting to ASCII...'
     arcpy.RasterToASCII_conversion(outPath + "FinalMap", asciiexp)
     nowTime = time.strftime('%X %x')

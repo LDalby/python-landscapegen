@@ -1,0 +1,161 @@
+---
+title: "ALMaSS landscape testing"
+author: "Lars Dalby"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.width = 5, fig.height = 4)
+library(data.table)
+library(ralmass)
+library(readxl)
+library(ggplot2)
+library(magrittr)
+
+GetNR = function(x){
+  knr = stringr::str_split(x, pattern = '-')[[1]][1]
+  KommuneNr = as.numeric(knr)*1000000
+  gnr = stringr::str_split(x, pattern = '-')[[1]][2]
+  GaardNr = as.numeric(gnr)*1000
+  bnr = stringr::str_split(x, pattern = '-')[[1]][3]
+  BrugerNr = as.numeric(bnr)
+  return(KommuneNr+GaardNr+BrugerNr)
+}
+
+```
+
+```{r write_polyref}
+invisible({
+staticpath = 'o:/ST_LandskabsGenerering/Norway/NTrondelag/Landscape/outputs'
+attr = fread(file.path(staticpath, paste0('Attr_NTrondelag', '.csv')))
+setkey(attr, 'LINK')
+recl = fread(file.path(staticpath, paste0('Reclass_Completemap_NTrondelag','.txt')), sep = ':')
+setnames(recl, c('PolyType', 'LINK'))
+setkey(recl, 'LINK')
+
+tmp = merge(attr, recl)  # Okay fine, now we can get rid of LINK.
+tmp[, LINK:=NULL]
+farmlink = fread(file.path(staticpath, paste0('FarmLinkTable_NTrondelag', '.txt')))
+farmlink = farmlink[PolyType >= 2100000,]
+farmlink[,FarmNumber:=sapply(FarmID, FUN = GetNR)]
+farmlink[is.na(FarmNumber),FarmNumber:=-9999L]  # Any fields without owner gets this NA indicator.
+setkey(farmlink, PolyType)
+setkey(tmp, PolyType)
+
+full = merge(tmp, farmlink, all.x = TRUE)
+full[is.na(FarmNumber), FarmNumber:=-1L]
+full[, FarmID:=NULL]
+
+full[PolyType %between% c(2100000, 2299999), PolyType:=20]  # Field
+full[PolyType %between% c(2300000, 2399999), PolyType:=35]  # Permnanent pasture
+
+setnames(full, c('PolyType','PolyRefNum','Area','Farmref'))
+setkey(full, PolyRefNum)
+farmrefs_polyref = full[Farmref != -1, length(unique(Farmref))]
+# WriteAlmassInput(full, pathtofile = file.path(staticpath, 'ALMaSSTrondelag','PolyrefNTrondelag.txt'))
+# fwrite(full, file = file.path(staticpath, 'ALMaSSTrondelag','PolyrefNTrondelag.txt'), sep = '\t')
+})
+```
+
+```{r investigate}
+# Investigating issue with too many farm IDs in the final map:
+invisible({
+fullattr = fread(file.path('o:/ST_LandskabsGenerering/Norway/NTrondelag/Landscape/', 'CombiFinalAttributeTable.txt'), showProgress = FALSE)
+# length(fullattr[,unique(FARMID),])
+fullattr[MATRIKKELK != 0, FarmNumber:=MATRIKKELK*1000000+GNR*1000+BNR]
+# length(fullattr[,unique(FARMID),])
+fullattr[ARTYPE %between% c(21,23),.(NFarmID = length(unique(FARMID)), NFarmNumber = length(unique(FarmNumber)))]
+# Read in the production data and see which ID are in the map, but not in the production data.
+excelfile = 'o:/ST_GooseProject/Norway/NorwayLandscape/FarmClassification/FarmClassification_Norway_20160215.xlsx'
+farmclassification = excelfile %>% 
+  read_excel(sheet = 'Ark1', skip = 1) %>% 
+  as.data.table
+farmclassification = farmclassification[,c('FarmNumber', 'Total Area dekar', 'Kommune')]
+# Find the number of unique farm IDs in the production data:
+farmnumbers_cjt = length(unique(farmclassification$FarmNumber))
+farmnumbers_cjt_inmap = length(which(farmclassification$FarmNumber %in% full$Farmref))
+farmnumbers_cjt_not_inmap = farmclassification$FarmNumber[which(!farmclassification$FarmNumber %in% full$Farmref)]
+# Have checked:
+# 1719247003: Outside of study region
+# 1721183008: Outside of study region
+# fullattr[!FarmNumber %in% farmnumbers_cjt & ARTYPE %between% c(21,23) & MATRIKKELK == 1719,]
+})
+```
+
+## Issue with missing farms
+
+We have encountered an issue with the number of farms within the landscape. The issue being that we have more farms in the GIS map than we have in the production/subsidy data (`r farmrefs_polyref` and `r farmnumbers_cjt`, respectively). Out of the `r farmnumbers_cjt` only `r farmnumbers_cjt_inmap` are within the map. The farms listed in the production data that are not in the map are mainly due to the fact that we map our study area and not the whole municipalities (production data is on municipality level). Other reasons can be inaccuracies in the input maps or farms which can claim subsidies without owning any fields (fields defined here as ARTYPE 21,22,23). Nevertheless, we did not expect the map and the production data to have exactly equal number of farms, but we didn't expect a difference this big. There is a number of phenomenons which could generate this. I discuss them below:
+
+### Mistakes in the landscape generation
+The landscape generation involves a number of GIS and database operations, a mistake in any of these could potentially cause an issue like this to occour. I've traced the intermediate GIS and database products and have not been able to find any issues. Most of the checks performed investigating this explanation was manual checks in the GIS software, so you'll just have to trust me on this one. However, as a rough check of the overall procedure we can calculate area of fields in the input polygon shape files and the area of fields in the final polyref file (the ALMaSS database with polygons and their type among other things).
+
+```{r polyref_vs_shape} 
+invisible({
+setkey(fullattr, 'FarmNumber')
+# Make subset with Levanger kommune (where Nesset is) from the GIS data
+levanger = fullattr[MATRIKKELK == 1719,]
+levanger[, FarmNumber:=sapply(FARMID, FUN = GetNR)]
+levanger[ARTYPE %between% c(21,23), Area:=sum(Shape_Area), by = FarmNumber]  # Select only fields and pasture
+levanger = unique(levanger[!is.na(Area), .(AreaDekar = Area/1000), by = FarmNumber])
+setkey(levanger, 'FarmNumber')
+# Make subset from the production data
+farmclassification_levanger = farmclassification[Kommune == 1719,c("FarmNumber", "Total Area dekar")]
+setkey(farmclassification_levanger, 'FarmNumber')
+setnames(farmclassification_levanger, old = 'Total Area dekar', new = 'AreaDekar')
+farms = merge(levanger, farmclassification_levanger, suffixes = c(".Map", ".Production"))
+
+polyrefarea = full[Farmref != -1,.(FieldArea = sum(Area)/1000), by = Farmref]
+setnames(polyrefarea, old = 'Farmref', new = 'FarmNumber')
+setkey(polyrefarea, FarmNumber)
+})
+merge(farms, polyrefarea) %>%
+ggplot(aes(AreaDekar.Map, FieldArea)) + 
+  geom_point(alpha = 1/5, size = 2) +
+  xlab('Area in map') +
+  ylab('Area in polyref file') +
+  labs(title = 'Comparison of areas in start and end products', subtitle = 'Levanger municipality.\nComparing the area based on the attribute table in the shape files with the area in the \npolyref file. Area in dekar') +
+  theme_bw()
+```
+
+This looks fine. Except for a few cases the farms maintain their field area all the way through the mapping procedure. 
+```{r farmed_area}
+invisible({
+fieldarea_map = fullattr[ARTYPE %between% c(21,23) & !is.na(FarmNumber), sum(Shape_Area)/1000]
+setnames(farmclassification, old = 'Total Area dekar', new = 'AreaDekar')
+fieldarea_production = farmclassification[FarmNumber %in% full[, Farmref], sum(AreaDekar)]
+}) 
+
+#
+```
+
+### Farmers don't claim the subsidy
+
+If the farmers simply don't claim the subsidy for the fields then obviously we would get the situation we have here. However it seems unlikely that most farmers don't claim their subsidy. If this should be the case then we should have a smaller area in the production data than we have in the map. This we can easily calculate. The area of fields in the map is `r format(fieldarea_map, scientific=FALSE)` and in the production data `r format(fieldarea_production, scientific=FALSE)` so there appear to claimed subsidy for `r format(fieldarea_map-fieldarea_production, scientific=FALSE)` dekar less than we have field in the area. This is only a `r format(round(((fieldarea_map-fieldarea_production)/fieldarea_map)*100,1), scientific=FALSE)`% difference. Nothing to be too worried about and unlikely  to explain the difference in farm numbers.
+
+
+### Farmers renting land
+
+If the farmers who rent land have the land they rent _and_ their own land listed under their farm ID (Kommunenr+Gnr+Bnr), then most of the `r farmnumbers_cjt_inmap` farms in the map with production data should appear bigger in the production data than in the map.
+
+```{r production_vs_map}
+ggplot(farms, aes(AreaDekar.Map, AreaDekar.Production)) + 
+  geom_point(alpha = 1/5, size = 3) +
+  xlab('Area in map') +
+  ylab('Area in production data') +
+  labs(title = 'Comparison of area claimed and area owned', subtitle = 'Levanger municipality. Area in dekar') +
+  theme_bw()
+```
+
+Aha! There is certainly farms that claim subsidy for more land then they own. So these farmers must be renting land. The question is if it is realistic that `r round((1-(farmnumbers_cjt/farmrefs_polyref))*100,1)`% of landowners rent out their land? Checking some of the farms not listed in the production data in the GIS, it appears that the missing ones tend to be small in which case it makes good sense for those farmers to rent it out. 
+
+```{r weather, echo=FALSE}
+invisible({
+# Weather file:
+weather = fread('o:/ST_GooseProject/Norway/NorwayLandscape/Weather/WeatherFromMæreStation2010-2016.txt')
+})
+```
+
+
+This leaves us with two things to deal with: We need to figure out if the discrepancy really can be due to the fact that most land owners rent out their fields and if so, how do we figure out who rents what from who? This makes a difference for the spatial dynamics in the final ALMaSS landscape. 
